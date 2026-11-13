@@ -28,7 +28,8 @@ html = html.replace('<script type="module" src="app.mjs"></script>', '<script>((
 for name in ['index.html', 'standalone.html']:
     (root / name).write_text(html, encoding='utf-8', newline='\n')
 
-files = sorted(p for p in root.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
+files = sorted(p for p in root.rglob('*')
+               if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.lock')
 archive = root.parent / 'CROSSROADS-WEB.zip'
 with ZipFile(archive, 'w', ZIP_DEFLATED, compresslevel=9) as zipfile:
     for path in files:
