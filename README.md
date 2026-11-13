@@ -8,6 +8,8 @@ Open `index.html` or `standalone.html` in a WebGL browser. On a phone, drag to r
 
 `roblox/Crossroads.rbxl` is the unmodified place archived at [Roblox/Old-Open-Source-Levels](https://github.com/Roblox/Old-Open-Source-Levels/blob/ab6927b221ab4a91a5664f69b5be64b98e782e75/ROBLOX/Miscellaneous/Crossroads.rbxl). The archive's MIT notice is in `roblox/LICENSE.txt`. The 1,676 exported parts come from the main map, including four landmarks and the overhead ramp. The export includes supported shapes, part transforms, brick colors and collision flags. External Roblox assets, Lua execution, teleporters, multiplayer services and original weapons are outside the browser port. The original file retains the archived content for Roblox Studio.
 
+Open `roblox/Crossroads-Studio.rbxl` to edit the copy saved by Roblox Studio. The map was verified by reopening the saved file. Studio could not load some legacy LinkedSource weapon scripts, so those tools may not work in local play and the migration prompt may reappear on open. Choose Cancel to continue editing the map if prompted.
+
 The browser controller, AI, models, audio synthesis and interface are independent implementations. Three.js is distributed under its included MIT license.
 
 ## Build
