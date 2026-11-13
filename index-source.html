@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172941">
+<title>Crossroads — Web Edition</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23172941'/%3E%3Cpath d='M8 19h32v10H8z' fill='%2379ffec'/%3E%3Cpath d='M19 8h10v32H19z' fill='%23ffdc47'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<body>
+<main id="game" data-mode="cover">
+  <canvas id="world" aria-label="Crossroads arena. Drag or tap to move, or use the arrow keys."></canvas>
+  <div class="edge"></div>
+  <header id="hud" hidden>
+    <div class="chip"><strong id="score">0 / 5</strong><small>RIVALS</small></div>
+    <div class="chip"><strong id="timer">1:10</strong><small>TIME</small></div>
+    <div class="chip life"><strong id="life">5</strong><small>HEALTH</small></div>
+  </header>
+  <button type="button" id="sound" class="small" aria-label="Mute sound" aria-pressed="false">♪</button>
+  <section id="cover" class="cover" aria-labelledby="title">
+    <div class="wordmark"><h1 id="title">CROSS<span>ROADS</span></h1><p>WEB EDITION</p></div>
+    <div class="entry"><button id="play" type="button" class="cta">PLAY</button><p>Drag to move. Blast automatically.</p></div>
+  </section>
+  <div id="film" class="film" hidden><div class="bar top"></div><div class="bar bottom"></div><p id="shot"></p><button type="button" id="skip" class="small">SKIP</button></div>
+  <div id="hint" hidden>DRAG TO MOVE</div>
+  <div id="feedback" role="status"></div>
+  <section id="result" class="result" hidden>
+    <div class="panel"><small id="arena"></small><h2 id="result-title"></h2><div id="stars"></div><p id="stats"></p><button type="button" id="next" class="cta">NEXT</button><p id="rewards" hidden></p></div>
+  </section>
+  <section id="fallback" class="result" hidden><div class="panel"><h2>3D unavailable</h2><p>Open the game in a browser with WebGL enabled.</p></div></section>
+</main>
+<script src="vendor/three.min.js"></script>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>
