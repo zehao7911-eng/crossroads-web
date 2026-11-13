@@ -19,10 +19,14 @@ def export():
     root = ET.parse(ROOT / 'roblox/Crossroads.rbxl').getroot()
     workspace = root.find('Item[@class="Workspace"]')
     parts, spawns = [], []
-    for item in workspace.findall('Item'):
+    extra = {'Teleporter', 'BattleArmorStand'}
+    items = workspace.findall('Item')
+    # Preserve the old map indices used in existing destruction checkpoints.
+    items.sort(key=lambda item: field(item, 'Name') in extra)
+    for item in items:
         group = field(item, 'Name')
         kind = item.get('class')
-        if group not in GROUPS and kind != 'SpawnLocation' and not group.startswith('TeamBeacon'):
+        if group not in GROUPS | extra and kind != 'SpawnLocation' and not group.startswith('TeamBeacon'):
             continue
         for node in item.iter('Item'):
             kind = node.get('class')
@@ -34,7 +38,7 @@ def export():
             xyz = components(frame, 'XYZ')
             shape = 'wedge' if kind == 'WedgePart' else {'0': 'ball', '1': 'box', '2': 'cylinder'}[field(node, 'shape', '1')]
             opacity = 1 - round(float(field(node, 'Transparency', '0')), 4)
-            if kind == 'SpawnLocation':
+            if kind == 'SpawnLocation' and group not in extra:
                 spawns.append(xyz)
             parts.append([
                 group, field(node, 'Name'), shape, xyz, components(size, 'XYZ'),

@@ -53,7 +53,7 @@ export function bridge({host=()=>globalThis.neonlib,read,write,changed=()=>{},sc
  }
  function probe(n=0){connect();if(alive&&n<8)later(()=>probe(n+1),1500);}
  function nudge(){connect();}const external=typeof globalThis.addEventListener==='function';if(external)for(let name of ['pointerdown','focus','resize'])globalThis.addEventListener(name,nudge,{passive:true});probe();
- return{save,connect,support:()=>({...support}),prepare(){started=false;ended=false;startHost=null;},start(){if(started&&!ended)return;started=true;ended=false;connect();notifyStart();},end(){if(!started||ended)return;ended=true;call(sdk||startHost,'gameOver');},
+ return{save,connect,support:()=>({...support}),prepare(){started=false;ended=false;startHost=null;},start(){if(started&&!ended)return;started=true;ended=false;connect();notifyStart();},end(){if(!started||ended)return;ended=true;call(startHost,'gameOver');},
   viewport(){let h=getHost();try{let v=h?.getGameViewport?.();if(v&&typeof v.then==='function'){Promise.resolve(v).catch(()=>{});return null;}if(v&&Number.isFinite(v.width)&&Number.isFinite(v.height)&&v.width>0&&v.height>0)return{width:v.width,height:v.height,density:Number.isFinite(v.density)&&v.density>0?v.density:1};}catch{}return null;},
   stop(){if(!alive)return;alive=false;epoch++;if(external)for(let name of ['pointerdown','focus','resize'])globalThis.removeEventListener(name,nudge);for(let t of timers)cancel(t);timers.clear();for(let e of entries.values()){e.expired=true;safeStop(e.stop);}entries.clear();support={like:false,comment:false};}
  };

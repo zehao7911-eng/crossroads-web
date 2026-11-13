@@ -20,7 +20,7 @@ def module(name, binding=None):
 
 runpy.run_path(str(root / 'export-map.py'), run_name='__main__')
 html = read('index-source.html')
-code = ''.join(module(name, binding) for name, binding in [('map.mjs', None), ('core.mjs', 'C'), ('art.mjs', 'Art'), ('audio.mjs', 'AudioKit'), ('sdk.mjs', 'SDK')])
+code = ''.join(module(name, binding) for name, binding in [('map.mjs', None), ('core.mjs', 'C'), ('classic.mjs', 'Classic'), ('art.mjs', 'Art'), ('audio.mjs', 'AudioKit'), ('sdk.mjs', 'SDK')])
 code += 'const {ArenaView}=Art,{RushAudio}=AudioKit,{bridge}=SDK;\n' + module('app.mjs')
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + read('style.css') + '\n</style>')
 html = html.replace('<script src="vendor/three.min.js"></script>', '<script>\n/*\n' + read('vendor/THREE-LICENSE.txt') + '\n*/\n' + read('vendor/three.min.js') + '\n</script>')
@@ -30,12 +30,16 @@ for name in ['index.html', 'standalone.html']:
 
 files = sorted(p for p in root.rglob('*')
                if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.lock')
-archive = root.parent / 'CROSSROADS-WEB.zip'
-with ZipFile(archive, 'w', ZIP_DEFLATED, compresslevel=9) as zipfile:
-    for path in files:
-        zipfile.write(path, path.relative_to(root).as_posix())
-with ZipFile(archive) as zipfile:
-    assert zipfile.testzip() is None
-    assert zipfile.read('index.html') == zipfile.read('standalone.html')
-    assert all(zipfile.read(path.relative_to(root).as_posix()) == path.read_bytes() for path in files)
-print(f'{archive.name}: {len(files)} files, {archive.stat().st_size:,} bytes')
+def package(name, entries):
+    archive = root.parent / name
+    with ZipFile(archive, 'w', ZIP_DEFLATED, compresslevel=9) as zipfile:
+        for path in entries:
+            zipfile.write(path, path.relative_to(root).as_posix())
+    with ZipFile(archive) as zipfile:
+        assert zipfile.testzip() is None
+        assert zipfile.read('index.html') == zipfile.read('standalone.html')
+        assert all(zipfile.read(path.relative_to(root).as_posix()) == path.read_bytes() for path in entries)
+    print(f'{archive.name}: {len(entries)} files, {archive.stat().st_size:,} bytes')
+
+package('CROSSROADS-WEB.zip', files)
+package('CROSSROADS-GAMEWAVE.zip', [root / 'index.html', root / 'standalone.html', root / 'GAMEWAVE-IMPORT.md', root / 'roblox/LICENSE.txt'])

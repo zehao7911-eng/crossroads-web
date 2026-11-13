@@ -1,4 +1,5 @@
 import {MAP} from './map.mjs';
+import * as Classic from './classic.mjs';
 
 const T=globalThis.THREE;
 T.ColorManagement.legacyMode=false;
@@ -7,7 +8,7 @@ const box=new T.BoxGeometry(1,1,1),sphere=new T.SphereGeometry(.5,14,9),ring=new
 const cylX=cylinder.clone();cylX.rotateZ(-Math.PI/2);
 const wedge=new T.BufferGeometry();
 const w=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5],[-.5,-.5,.5],[-.5,.5,.5],[.5,.5,.5]];
-wedge.setAttribute('position',new T.Float32BufferAttribute([0,2,1,0,3,2,3,5,2,3,4,5,0,1,5,0,5,4,0,4,3,1,2,5].flatMap(i=>w[i]),3));wedge.computeVertexNormals();
+wedge.setAttribute('position',new T.Float32BufferAttribute([0,1,2,0,2,3,3,2,5,3,5,4,0,5,1,0,4,5,0,3,4,1,5,2].flatMap(i=>w[i]),3));wedge.computeVertexNormals();
 const shapes={box,ball:sphere,cylinder:cylX,wedge};
 const paint=(color,roughness=.77)=>new T.MeshStandardMaterial({color,roughness});
 const basic=(color,opacity=1)=>new T.MeshBasicMaterial({color,opacity,transparent:opacity<1,depthWrite:opacity===1});
@@ -50,13 +51,36 @@ function pilot(parent,enemy=false){
     cube(arm,tint.face,0,-.96,.06,.56,.31,.59);
     arms.push(arm);
   }
+  const equipment=[];
   if(!enemy){
-    const tool=group(arms[1],.17,-.8,.4);tool.rotation.x=Math.PI/2;
-    mesh(tool,cylinder,tint.dark,0,.25,0,.47,1.53,.47);
-    mesh(tool,cylinder,tint.white,0,.66,0,.54,.33,.54);
-    mesh(tool,cylinder,tint.orange,0,.9,0,.62,.26,.62);
+    for(const [index,spec] of Classic.tools.entries()){
+      const tool=group(arms[1],.17,-.8,.4);
+      const coat=paint(spec.color,.43);
+      equipment.push(tool);
+      tool.visible=index===2;
+      if(spec.type==='rocket'){
+        tool.rotation.x=Math.PI/2;
+        mesh(tool,cylinder,tint.dark,0,.25,0,.48,1.64,.48);
+        mesh(tool,cylinder,tint.steel,0,.66,0,.55,.28,.55);
+        mesh(tool,cylinder,tint.orange,0,.92,0,.61,.30,.61);
+      }else if(spec.type==='sword'){
+        cube(tool,tint.dark,0,-.1,.03,.22,.55,.24);
+        cube(tool,tint.white,0,.21,.04,.80,.15,.23);
+        cube(tool,coat,0,.93,.04,.28,1.43,.13);
+      }else if(spec.type==='pellet'){
+        cube(tool,tint.dark,0,.1,0,.18,.55,.23);
+        for(const side of [-1,1])cube(tool,coat,side*.16,.45,0,.12,.49,.16).rotation.z=side*-.45;
+        cube(tool,tint.white,0,.68,0,.47,.05,.05);
+      }else if(spec.type==='wall'){
+        cube(tool,tint.dark,0,.09,0,.15,.61,.15);
+        mesh(tool,wedge,coat,0,.55,0,.65,.16,.88);
+      }else{
+        mesh(tool,sphere,coat,0,.13,.15,.89,.89,.89);
+        if(spec.type==='bomb')cube(tool,tint.orange,0,.59,.12,.12,.24,.12);
+      }
+    }
   }
-  return {root,body,head,legs,arms,last:null};
+  return {root,body,head,legs,arms,equipment,last:null};
 }
 
 export class ArenaView {
@@ -73,6 +97,10 @@ export class ArenaView {
     this.instances=new Map();this.hidden=new Set();
     this.buildMap();
     this.hero=pilot(this.scene);this.bots=new Map();
+    this.projectileNodes=new Map();this.wallNodes=new Map();
+    this.toolPaint=Classic.tools.map(spec=>basic(spec.color));
+    this.wallPaint=paint(0xc45d40);
+    this.wallMortar=paint(0xe4ae7c);
     this.clock=0;this.fxIndex=0;
     this.effects=Array.from({length:78},(_,i)=>{
       const node=mesh(this.scene,i%4===0?ring:shard,basic(0xffcf48,.9),0,-10,0,1,1,1);node.visible=false;
@@ -127,8 +155,9 @@ export class ArenaView {
     this.renderer.setSize(width,height,false);this.camera.aspect=width/height;this.camera.updateProjectionMatrix();
   }
 
-  point(x,y){
+  point(x,y,height=.8){
     this.ray.setFromCamera(new T.Vector2(x/this.width*2-1,1-y/this.height*2),this.camera);
+    this.floor.constant=-height;
     const p=this.ray.ray.intersectPlane(this.floor,new T.Vector3());return p?{x:p.x,z:p.z}:null;
   }
 
@@ -154,6 +183,14 @@ export class ArenaView {
     }
     if(event.type==='tag')this.burst(event.x,event.z,15,rewards.comment?0xa968ff:0x60f9de);
     if(event.type==='hit')this.burst(event.x,event.z,10,0xff634e);
+    if(event.type==='impact'){
+      this.burst(event.x,event.z,event.heavy?14:5,rewards.like?0xff80ee:event.color);
+      for(const id of event.bricks){
+        const brick=this.instances.get(id);
+        if(brick){const p=new T.Vector3().setFromMatrixPosition(brick.matrix);this.burst(p.x,p.z,5,brick.shade);}
+      }
+    }
+    if(event.type==='swing'||event.type==='build'||event.type==='armor')this.burst(event.x,event.z,6,event.color??0xffdc61);
   }
 
   pose(actor,state,dt){
@@ -162,12 +199,50 @@ export class ArenaView {
     const swing=Math.sin(this.clock*14)*Math.min(.61,speed*.032);
     actor.legs.forEach((leg,i)=>leg.rotation.x=swing*(i?-1:1));
     actor.arms.forEach((arm,i)=>arm.rotation.x=(i===1?-.24:0)-swing*(i?-1:1));
-    actor.body.position.y=Math.abs(swing)*.3;actor.root.position.set(state.x,.81,state.z);actor.last=[state.x,state.z];
+    actor.body.position.y=Math.abs(swing)*.3;actor.root.position.set(state.x,(state.y??.8)+.01,state.z);actor.last=[state.x,state.z];
+  }
+
+  drawTools(run){
+    this.hero.equipment.forEach((tool,i)=>{tool.visible=i===(run.weapon??2);});
+    const shots=run.shots??[],walls=run.walls??[];
+    for(const [id,node] of this.projectileNodes)if(!shots.some(shot=>shot.id===id)){
+      node.removeFromParent();this.projectileNodes.delete(id);
+    }
+    for(const shot of shots){
+      let node=this.projectileNodes.get(shot.id);
+      if(!node){
+        const spec=Classic.tools[shot.kind];
+        const scale=spec.type==='pellet'?.67:spec.type==='ball'?1.8:1.24;
+        node=mesh(this.scene,spec.type==='rocket'?cylinder:sphere,this.toolPaint[shot.kind],shot.x,shot.y,shot.z,scale,scale,scale);
+        this.projectileNodes.set(shot.id,node);
+      }
+      node.position.set(shot.x,shot.y,shot.z);
+      if(Classic.tools[shot.kind].type==='rocket'){
+        const velocity=new T.Vector3(shot.vx,shot.vy,shot.vz).normalize();
+        node.scale.y=2.1;
+        node.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),velocity);
+      }
+    }
+    for(const [id,node] of this.wallNodes)if(!walls.some(wall=>wall.id===id)){
+      node.removeFromParent();this.wallNodes.delete(id);
+    }
+    for(const wall of walls){
+      if(this.wallNodes.has(wall.id))continue;
+      const root=group(this.scene,wall.x,wall.y,wall.z);
+      const [sx,sy,sz]=wall.size;
+      cube(root,this.wallMortar,0,0,0,sx,sy,sz);
+      for(let row=0;row<4;row++)for(let col=0;col<3;col++){
+        const wide=sx>sz,span=(wide?sx:sz)/3,offset=(col-1)*span;
+        cube(root,this.wallPaint,wide?offset:0,(row-1.5)*1.2,wide?0:offset,wide?span-.09:sx+.045,1.10,wide?sz+.045:span-.09);
+      }
+      this.wallNodes.set(wall.id,root);
+    }
   }
 
   draw(run,dt,mode,elapsed,target){
     this.clock+=dt;
     this.pose(this.hero,run,dt);
+    this.drawTools(run);
     const current=new Set(run.bots.map(bot=>bot.id));
     for(const [id,actor] of this.bots)if(!current.has(id)){actor.root.removeFromParent();this.bots.delete(id);}
     for(const bot of run.bots){
@@ -191,8 +266,8 @@ export class ArenaView {
     const portrait=this.height>this.width;
     const cx=run.x,cz=run.z;
     if(mode==='play'){
-      this.focus.lerp(new T.Vector3(cx,1,cz-3),Math.min(1,dt*10+.025));
-      this.camera.position.set(this.focus.x+(portrait?13:19),portrait?54:46,this.focus.z+(portrait?40:38));
+      this.focus.lerp(new T.Vector3(cx,(run.y??.8)+.2,cz-3),Math.min(1,dt*10+.025));
+      this.camera.position.set(this.focus.x+(portrait?13:19),this.focus.y+(portrait?53:45),this.focus.z+(portrait?40:38));
       this.camera.lookAt(this.focus);
     }else if(mode==='intro'){
       const k=Math.min(1,elapsed/4.1),a=(1-k)*1.3+.29;
@@ -204,8 +279,8 @@ export class ArenaView {
       const d=mode==='outro'?15:21;
       this.hero.root.rotation.y=a;
       if(mode==='outro'&&run.phase==='won')this.hero.arms.forEach((arm,i)=>arm.rotation.x=-1.7+Math.sin(this.clock*13+i)*.28);
-      this.camera.position.set(cx+Math.sin(a)*d,10,cz+Math.cos(a)*d);
-      this.camera.lookAt(cx,3.5,cz);
+      this.camera.position.set(cx+Math.sin(a)*d,9.2+(run.y??.8),cz+Math.cos(a)*d);
+      this.camera.lookAt(cx,2.7+(run.y??.8),cz);
       this.focus.set(cx,1,cz);
     }
     this.renderer.render(this.scene,this.camera);

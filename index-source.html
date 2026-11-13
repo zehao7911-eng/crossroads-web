@@ -18,14 +18,17 @@
   <button type="button" id="sound" class="small" aria-label="Mute sound" aria-pressed="false">♪</button>
   <section id="cover" class="cover" aria-labelledby="title">
     <div class="wordmark"><h1 id="title">CROSS<span>ROADS</span></h1><p>WEB EDITION</p></div>
-    <div class="entry"><button id="play" type="button" class="cta">PLAY</button><p>Drag to move. Blast automatically.</p></div>
+    <div class="entry"><button id="play" type="button" class="cta">PLAY CLASSIC</button><p>Drag to move. Tap to use a tool.</p><button id="arcade" type="button" class="small">Arcade Mode</button></div>
   </section>
   <div id="film" class="film" hidden><div class="bar top"></div><div class="bar bottom"></div><p id="shot"></p><button type="button" id="skip" class="small">SKIP</button></div>
   <div id="hint" hidden>DRAG TO MOVE</div>
   <div id="feedback" role="status"></div>
+  <button type="button" id="jump" class="small" hidden aria-label="Jump">↑</button>
+  <div id="loadout" aria-label="Tools" hidden></div>
   <section id="result" class="result" hidden>
     <div class="panel"><small id="arena"></small><h2 id="result-title"></h2><div id="stars"></div><p id="stats"></p><button type="button" id="next" class="cta">NEXT</button><p id="rewards" hidden></p></div>
   </section>
+  <button type="button" id="exit" class="small" hidden>Menu</button>
   <section id="fallback" class="result" hidden><div class="panel"><h2>3D unavailable</h2><p>Open the game in a browser with WebGL enabled.</p></div></section>
 </main>
 <script src="vendor/three.min.js"></script>
